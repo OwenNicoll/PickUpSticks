@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <iostream>
 #include <vector>
 #include <stdio.h>
@@ -17,9 +18,9 @@ int main()
 {
 
 
-    // ---------------------------------------------------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     // Setup
-    // ---------------------------------------------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # pragma region Setup
 
 
@@ -74,7 +75,7 @@ int main()
     // Vector for grass Sprites
     std::vector<sf::Sprite> grassVector;
 
-    int numGrassSpritesToAdd = 5;
+    int numGrassSpritesToAdd = 10;
 
     // Grass position and colours
     for (int i = 0; i < numGrassSpritesToAdd; ++i)
@@ -86,6 +87,7 @@ int main()
 
         float randScale = 1 + rand() % 1;
         
+        grassSprite.setOrigin((grassTexture.getSize().x) / 2, (grassTexture.getSize().y) / 2);
         grassSprite.setScale(randScale, randScale);
         grassSprite.setColor(sf::Color(num, num, num));
         grassSprite.setPosition(sf::Vector2f(rand() % (window.getSize().x - grassTexture.getSize().x), rand() % (window.getSize().y - grassTexture.getSize().y)));
@@ -95,8 +97,9 @@ int main()
     // Vector for stick Sprites
     std::vector<sf::Sprite> stickSprites;
 
-    // Stick position
+    // Stick Position and Rotation
     stickSprite.setRotation(rand() % 360);
+    stickSprite.setOrigin(stickTexture.getSize().x / 2, stickTexture.getSize().y / 2);
     stickSprite.setPosition(sf::Vector2f(rand() % (window.getSize().x - grassTexture.getSize().x), rand() % (window.getSize().y - grassTexture.getSize().y)));
     stickSprites.push_back(stickSprite);
 
@@ -122,25 +125,47 @@ int main()
     sf::Text gameTitle;
     gameTitle.setFont(gameFont);
     gameTitle.setString("Pick Up Sticks");
+    gameTitle.setFillColor(sf::Color::Cyan);
+    gameTitle.setOutlineThickness(2.0f);
+    gameTitle.setCharacterSize(60);
+  //  gameTitle.setStyle(sf::Style::);
+
+
     float textWidth = gameTitle.getLocalBounds().width;
-    gameTitle.setPosition((float)window.getSize().x/2.0f - textWidth/2.0f, 10.0f);
+    gameTitle.setPosition((float)window.getSize().x / 2.0f - textWidth / 2.0f, 10.0f);
+    
 
     sf::Text scoreLabel;
     scoreLabel.setFont(gameFont);
     scoreLabel.setString("Score: ");
+    scoreLabel.setFillColor(sf::Color::Cyan);
+    scoreLabel.setOutlineThickness(2.0f);
     scoreLabel.setPosition(0, 10);
+    
+    sf::SoundBuffer startSFXBuffer;
+    startSFXBuffer.loadFromFile("Assets/Start.wav");
+
+    sf::Sound startSFX;
+    startSFX.setBuffer(startSFXBuffer);
+    startSFX.play();
+    
+    sf::Music gameMusic;
+    gameMusic.openFromFile("Assets/Music.OGG");
+    gameMusic.setVolume(50);
+    gameMusic.setLoop(true);
+    gameMusic.play();
+    
+    
 
     
-        
 
-    
-
-#pragma endregion
+#pragma endregion 
+    // End Setup
 
 
-   // -------------------------------------------------------------------------------------------------------------------------------------
+   // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
    // Event Polling
-   // --------------------------------------------------------------------------------------------------------------------------------------
+   // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma region Event Polling
 
 
@@ -161,12 +186,16 @@ int main()
                 window.close();
         }
 
+        
+       
 
+       
+        
 #pragma endregion
     
-   // -------------------------------------------------------------------------------------------------------------------------------------------
+   // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
    // Drawing
-   // ---------------------------------------------------------------------------------------------------------------------------------------------
+   // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma region Drawing
 
 
