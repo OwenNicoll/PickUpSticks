@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h> 
+#include <cmath>
 
 
 int RandomNumberGenerator(int min, int max)
@@ -104,7 +105,7 @@ int main()
     stickSprites.push_back(stickSprite);
 
     // Player position
-    playerSprite.setPosition(sf::Vector2f(200.0f, 500.0f));
+    playerSprite.setPosition(sf::Vector2f(500.0f, 500.0f));
  
     // Rotation
     playerSprite.setRotation(0);
@@ -156,8 +157,11 @@ int main()
     gameMusic.play();
     
     
-
-    
+    float xDir = (10 - rand() % 21)/10.0f;
+    float yDir = (10 - rand() % 21)/10.0f;
+    sf::Vector2f direction(xDir, yDir);
+    bool dashPressedPrev = false;
+    bool dashPressed = false;
 
 #pragma endregion 
     // End Setup
@@ -186,11 +190,84 @@ int main()
                 window.close();
         }
 
+#pragma endregion
+   // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   // Update
+   // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#pragma region Update
         
-       
+        direction.x = 0;
+        direction.y = 0;
+        
+        if (sf::Joystick::isConnected(0))
+        {
+
+            float axisX = sf::Joystick::getAxisPosition(1, sf::Joystick::X);
+            float axisY = sf::Joystick::getAxisPosition(1, sf::Joystick::Y); 
+
+            float deadzone = 40;
+
+            if (abs(axisX) > deadzone)
+            {
+                direction.x = axisX / 100.0f;
+            }
+            if (abs(axisY) > deadzone)
+            {
+                direction.y = axisY / 100.0f;
+            }
+
+            direction.x = sf::Joystick::getAxisPosition(1, sf::Joystick::X) / 100.0f;
+        }   direction.y = sf::Joystick::getAxisPosition(1, sf::Joystick::Y) / 100.0f;
+
+      //  if(sf::Joystick::isButtonPressed(sf::Joystick::))
+
+        
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)|| sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        {
+            direction.x = -1;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)|| sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        {
+            direction.x = 1;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        {
+            direction.y = -1;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        {
+            direction.y = 1;
+        }
+
 
        
+        playerSprite.setPosition(playerSprite.getPosition() + direction * 0.1f);
         
+       
+        sf::Vector2f dashDirection(direction.x + 0.1, 0);
+
+        dashPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || sf::Joystick::isButtonPressed(1,10);
+
+        if (dashPressed && !dashPressedPrev)
+        {
+            playerSprite.setPosition(playerSprite.getPosition() + direction * 300.0f);
+        }
+
+        dashPressedPrev = dashPressed;
+
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+        {
+            sf::Vector2i localPosition = sf::Mouse::getPosition(window);
+            sf::Vector2f mousePositionFloat = (sf::Vector2f)localPosition;
+
+            stickSprite.setPosition(mousePositionFloat);
+            stickSprites.push_back(stickSprite);
+        }
+
+       
+
+
+
 #pragma endregion
     
    // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -209,10 +286,15 @@ int main()
         }
 
         // Draw Player
+        for (int i = 0; i < stickSprites.size(); ++i)
+        {
+            window.draw(stickSprites[i]);
+        }
+       
         window.draw(playerSprite);
-        window.draw(stickSprite);
         window.draw(gameTitle);
         window.draw(scoreLabel);
+
         window.display();
     }
 
