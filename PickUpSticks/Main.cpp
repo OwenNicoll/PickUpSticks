@@ -7,6 +7,12 @@
 #include <time.h> 
 #include <cmath>
 
+enum GameState
+{
+    RUNNING,        //RUNNING = 0
+    GAME_OVER,       // GAME_OVER = 1
+    NUM_GAME_STATES
+};
 
 int RandomNumberGenerator(int min, int max)
 {
@@ -43,23 +49,7 @@ int main()
     sf::Texture stickTexture;
     stickTexture.loadFromFile("Assets/Stick.png");
 
-    if (!playerTexture.loadFromFile("Assets/Player_Stand.png"))
-    {
-        // Error message
-        std::cout << "Texture load failed for Assets/Player_Stand.png" << std::endl;
-    }
-    else
-    {
-        std::cout << "Texture loaded successfully" << std::endl;
-    }
-    if (!grassTexture.loadFromFile("Assets/Grass.png"))
-    {
-        std::cout << "Texture load failed for Assets/Grass.png" << std::endl;
-    }
-    else
-    {
-        std::cout << "Texture loaded successfully" << std::endl;
-    }
+  
 
     // Player Sprite
     sf::Sprite playerSprite;
@@ -75,7 +65,6 @@ int main()
 
     // Vector for grass Sprites
     std::vector<sf::Sprite> grassVector;
-
     int numGrassSpritesToAdd = 10;
 
     // Grass position and colours
@@ -97,13 +86,7 @@ int main()
 
     // Vector for stick Sprites
     std::vector<sf::Sprite> stickSprites;
-
-    // Stick Position and Rotation
-    stickSprite.setRotation(rand() % 360);
-    stickSprite.setOrigin(stickTexture.getSize().x / 2, stickTexture.getSize().y / 2);
-    stickSprite.setPosition(sf::Vector2f(rand() % (window.getSize().x - grassTexture.getSize().x), rand() % (window.getSize().y - grassTexture.getSize().y)));
-    stickSprites.push_back(stickSprite);
-
+    
     // Player position
     playerSprite.setPosition(sf::Vector2f(500.0f, 500.0f));
  
@@ -123,19 +106,30 @@ int main()
  
 
     // Create Text Objects
+    // Game Title
     sf::Text gameTitle;
     gameTitle.setFont(gameFont);
     gameTitle.setString("Pick Up Sticks");
     gameTitle.setFillColor(sf::Color::Cyan);
     gameTitle.setOutlineThickness(2.0f);
     gameTitle.setCharacterSize(60);
-  //  gameTitle.setStyle(sf::Style::);
-
 
     float textWidth = gameTitle.getLocalBounds().width;
     gameTitle.setPosition((float)window.getSize().x / 2.0f - textWidth / 2.0f, 10.0f);
-    
 
+
+    // Timer
+    sf::Text timerText;
+    timerText.setFont(gameFont);
+    timerText.setString("Time Left: ");
+    timerText.setFillColor(sf::Color::Cyan);
+    timerText.setOutlineThickness(2.0f);
+    timerText.setCharacterSize(20);
+    timerText.setPosition((float)window.getSize().x - 500.0f, 10.0f);
+
+
+   
+    // Score label
     sf::Text scoreLabel;
     scoreLabel.setFont(gameFont);
     scoreLabel.setString("Score: ");
@@ -143,25 +137,50 @@ int main()
     scoreLabel.setOutlineThickness(2.0f);
     scoreLabel.setPosition(0, 10);
     
+    // Game over
+    sf::Text gameOverText;
+    gameOverText.setFont(gameFont);
+    gameOverText.setString("Game Over");
+    gameOverText.setFillColor(sf::Color::Red);
+    gameOverText.setOutlineThickness(2.0f);
+    gameOverText.setCharacterSize(60);
+
+    gameOverText.setPosition(window.getSize().x / 2, window.getSize().y / 2);
+
+    // Sound
     sf::SoundBuffer startSFXBuffer;
     startSFXBuffer.loadFromFile("Assets/Start.wav");
-
     sf::Sound startSFX;
     startSFX.setBuffer(startSFXBuffer);
     startSFX.play();
     
+    // Music
     sf::Music gameMusic;
     gameMusic.openFromFile("Assets/Music.OGG");
     gameMusic.setVolume(50);
     gameMusic.setLoop(true);
     gameMusic.play();
     
-    
+    // Set a random direction vector
     float xDir = (10 - rand() % 21)/10.0f;
     float yDir = (10 - rand() % 21)/10.0f;
     sf::Vector2f direction(xDir, yDir);
     bool dashPressedPrev = false;
     bool dashPressed = false;
+
+    // Clocks and Timers
+    sf::Clock deltaTimeClock;
+    sf::Clock totalTimeClock;
+    sf::Clock gameTimer;
+    float gameDuration = 5;         // How long the game will last
+    sf::Clock stickSpawnTimer;
+    float stickTimer = 1;           // Time between stick spawns
+    
+   
+    // Set game running to true
+   // bool gameRunning = true;
+
+    GameState currentState = RUNNING;           // assign the value 0 
 
 #pragma endregion 
     // End Setup
@@ -195,10 +214,37 @@ int main()
    // Update
    // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #pragma region Update
+
+        // Get time
+        sf::Time deltaTime = deltaTimeClock.restart();
         
+
+        // Game Timer
+        float gameTimeFloat = gameTimer.getElapsedTime().asSeconds();
+        float remainingTimeFloat = gameDuration - gameTimeFloat;
+        if (remainingTimeFloat <= 0)
+        {
+            currentState = GAME_OVER;
+            remainingTimeFloat = 0;
+            
+        }
+        std::string timerString = "Time Remaining: ";
+        timerString += std::to_string((int)ceil(remainingTimeFloat));
+
+        // Display time passed this game
+        timerText.setString(timerString);
+       
+
+       
+
+
+
+        
+        // Set direction vector to 0
         direction.x = 0;
         direction.y = 0;
         
+        // Gamepad input
         if (sf::Joystick::isConnected(0))
         {
 
@@ -219,53 +265,85 @@ int main()
             direction.x = sf::Joystick::getAxisPosition(1, sf::Joystick::X) / 100.0f;
         }   direction.y = sf::Joystick::getAxisPosition(1, sf::Joystick::Y) / 100.0f;
 
-      //  if(sf::Joystick::isButtonPressed(sf::Joystick::))
+     // Game Loop
+        if (currentState == RUNNING)
+        {
+            
 
+            // Keyboard input
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+            {
+                direction.x = -1;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+            {
+                direction.x = 1;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+            {
+                direction.y = -1;
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+            {
+                direction.y = 1;
+            }
+
+
+            // Update player position based on movement direction
+            float speed = 700;
+            // velocity = direction * speed
+            sf::Vector2f velocity = direction * speed;
+            // distance traveled = velocity * time
+            sf::Vector2f distance = velocity * deltaTime.asSeconds();
+            playerSprite.setPosition(playerSprite.getPosition() + distance);
+
+            // Check for dash input
+            dashPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || sf::Joystick::isButtonPressed(1, 10);
+
+            // Check if player dashed last frame
+            if (dashPressed && !dashPressedPrev)
+            {
+                // Dash
+                playerSprite.setPosition(playerSprite.getPosition() + direction * 300.0f);
+            }
+
+            
+            dashPressedPrev = dashPressed;
+
+            // Check for mouse inout
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+            {
+                // Get mouse position
+                sf::Vector2i localPosition = sf::Mouse::getPosition(window);
+                sf::Vector2f mousePositionFloat = (sf::Vector2f)localPosition;
+
+                // Spawn a stick on mouse position
+                stickSprite.setPosition(mousePositionFloat);
+                stickSprites.push_back(stickSprite);
+            }
+
+            // Spawn Sticks
+            float stickSpawnFloat = stickSpawnTimer.getElapsedTime().asSeconds();
+            if (stickSpawnFloat >= stickTimer)
+            {
+                stickSprite.setRotation(rand() % 360);
+                stickSprite.setOrigin(stickTexture.getSize().x / 2, stickTexture.getSize().y / 2);
+                stickSprite.setPosition(sf::Vector2f(rand() % (window.getSize().x - grassTexture.getSize().x), rand() % (window.getSize().y - grassTexture.getSize().y)));
+                stickSprites.push_back(stickSprite);
+                stickSpawnTimer.restart();
+            }
+        } // END OF IF(GAMERUNNING)
         
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)|| sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        if (currentState == GAME_OVER)
         {
-            direction.x = -1;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && (currentState == GAME_OVER))
+            {
+                currentState = RUNNING;
+                stickSprites.clear();
+                
+                gameTimer.restart();
+            }
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)|| sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-        {
-            direction.x = 1;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-        {
-            direction.y = -1;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-        {
-            direction.y = 1;
-        }
-
-
-       
-        playerSprite.setPosition(playerSprite.getPosition() + direction * 0.1f);
-        
-       
-        sf::Vector2f dashDirection(direction.x + 0.1, 0);
-
-        dashPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || sf::Joystick::isButtonPressed(1,10);
-
-        if (dashPressed && !dashPressedPrev)
-        {
-            playerSprite.setPosition(playerSprite.getPosition() + direction * 300.0f);
-        }
-
-        dashPressedPrev = dashPressed;
-
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-        {
-            sf::Vector2i localPosition = sf::Mouse::getPosition(window);
-            sf::Vector2f mousePositionFloat = (sf::Vector2f)localPosition;
-
-            stickSprite.setPosition(mousePositionFloat);
-            stickSprites.push_back(stickSprite);
-        }
-
-       
-
 
 
 #pragma endregion
@@ -294,7 +372,11 @@ int main()
         window.draw(playerSprite);
         window.draw(gameTitle);
         window.draw(scoreLabel);
-
+        window.draw(timerText);
+        if (currentState == GAME_OVER)
+        {
+            window.draw(gameOverText);
+        }
         window.display();
     }
 
