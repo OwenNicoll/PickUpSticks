@@ -7,7 +7,7 @@
 #include <time.h> 
 #include <cmath>
 
-enum GameState
+enum class GameState
 {
     RUNNING,        //RUNNING = 0
     GAME_OVER,       // GAME_OVER = 1
@@ -50,7 +50,6 @@ int main()
     stickTexture.loadFromFile("Assets/Stick.png");
 
   
-
     // Player Sprite
     sf::Sprite playerSprite;
     playerSprite.setTexture(playerTexture);
@@ -144,8 +143,9 @@ int main()
     gameOverText.setFillColor(sf::Color::Red);
     gameOverText.setOutlineThickness(2.0f);
     gameOverText.setCharacterSize(60);
+    
 
-    gameOverText.setPosition(window.getSize().x / 2, window.getSize().y / 2);
+    gameOverText.setPosition((float)window.getSize().x / 2 - 250.0f , window.getSize().y / 2);
 
     // Sound
     sf::SoundBuffer startSFXBuffer;
@@ -172,7 +172,7 @@ int main()
     sf::Clock deltaTimeClock;
     sf::Clock totalTimeClock;
     sf::Clock gameTimer;
-    float gameDuration = 5;         // How long the game will last
+    float gameDuration = 10;         // How long the game will last
     sf::Clock stickSpawnTimer;
     float stickTimer = 1;           // Time between stick spawns
     
@@ -180,8 +180,10 @@ int main()
     // Set game running to true
    // bool gameRunning = true;
 
-    GameState currentState = RUNNING;           // assign the value 0 
+    GameState currentState = GameState::RUNNING;           // assign the value 0 
 
+
+    int score = 0;
 #pragma endregion 
     // End Setup
 
@@ -224,7 +226,7 @@ int main()
         float remainingTimeFloat = gameDuration - gameTimeFloat;
         if (remainingTimeFloat <= 0)
         {
-            currentState = GAME_OVER;
+            currentState = GameState::GAME_OVER;
             remainingTimeFloat = 0;
             
         }
@@ -234,6 +236,7 @@ int main()
         // Display time passed this game
         timerText.setString(timerString);
        
+        
 
        
 
@@ -266,10 +269,10 @@ int main()
         }   direction.y = sf::Joystick::getAxisPosition(1, sf::Joystick::Y) / 100.0f;
 
      // Game Loop
-        if (currentState == RUNNING)
+        if (currentState == GameState::RUNNING)
         {
             
-
+ 
             // Keyboard input
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
             {
@@ -332,19 +335,50 @@ int main()
                 stickSprites.push_back(stickSprite);
                 stickSpawnTimer.restart();
             }
+
+
+            sf::FloatRect playerBounds = playerSprite.getGlobalBounds();
+
+            // Loop through all stick sprites and check if they collide with player
+            for (auto it = stickSprites.begin(); it != stickSprites.end(); )
+            {
+             
+                //  "it" is an iterator, which can be used like a pointer to a sprite
+                sf::FloatRect stickBounds = it->getGlobalBounds();
+                    // If the stick and player overlap...
+                  if (playerBounds.intersects(stickBounds))
+                  {
+                         it = stickSprites.erase(it);
+                         ++score;
+                         
+                  }
+                  else
+                  {
+                      ++it;
+                  }
+            }
+          
+            
+          
+
+
         } // END OF IF(GAMERUNNING)
         
-        if (currentState == GAME_OVER)
+        if (currentState == GameState::GAME_OVER)
         {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && (currentState == GAME_OVER))
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) && (currentState == GameState::GAME_OVER))
             {
-                currentState = RUNNING;
+                currentState = GameState::RUNNING;
                 stickSprites.clear();
-                
+                score = 0;
                 gameTimer.restart();
             }
         }
 
+        // Score
+        std::string scoreString = "Score: ";
+        scoreString += std::to_string(score);
+        scoreLabel.setString(scoreString);
 
 #pragma endregion
     
@@ -373,7 +407,7 @@ int main()
         window.draw(gameTitle);
         window.draw(scoreLabel);
         window.draw(timerText);
-        if (currentState == GAME_OVER)
+        if (currentState == GameState::GAME_OVER)
         {
             window.draw(gameOverText);
         }
