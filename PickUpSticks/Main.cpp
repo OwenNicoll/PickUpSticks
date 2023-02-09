@@ -34,7 +34,39 @@ int main()
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Pick Up Sticks!", sf::Style::None);
     srand(time(NULL));
 
+    sf::Texture playerTextureStand;
+    playerTextureStand.loadFromFile("Assets/Player_Stand.png");
 
+    sf::Texture playerTextureWalk1;
+    playerTextureWalk1.loadFromFile("Assets/Player_Walk_1.png");
+
+    sf::Texture playerTextureWalk2;
+    playerTextureWalk2.loadFromFile("Assets/Player_Walk_2.png");
+
+    // Load player animation
+    std::vector<sf::Texture> playerWalk;
+    int numFrames = 2;
+    std::string baseFilePath = "Assets/Player_Walk_";
+    std::string fileType = ".png";
+
+    // For loop to populate vector
+    for (int i = 0; i < numFrames; ++i)
+    {
+        playerWalk.push_back(sf::Texture());
+        playerWalk[i].loadFromFile(baseFilePath + std::to_string((int)(i + 1)) +fileType);
+    }
+
+
+    /*playerWalk.push_back(sf::Texture());
+    playerWalk[0].loadFromFile("Assets/Player_Walk_1.png");
+    playerWalk.push_back(sf::Texture());
+    playerWalk[1].loadFromFile("Assets/Player_Walk_2.png");*/
+
+    std::vector<sf::Texture> playerStand;
+    playerStand.push_back(sf::Texture());
+    playerStand[0].loadFromFile("Assets/Player_Stand.png");
+
+    std::vector<sf::Texture>* currentClip = &playerStand;
    
 
     // Player Texture
@@ -172,10 +204,16 @@ int main()
     sf::Clock deltaTimeClock;
     sf::Clock totalTimeClock;
     sf::Clock gameTimer;
-    float gameDuration = 10;         // How long the game will last
+    float gameDuration = 30;         // How long the game will last
     sf::Clock stickSpawnTimer;
     float stickTimer = 1;           // Time between stick spawns
-    
+
+    // Player animation variables
+    float framesPerSecond = 12.0f;
+    sf::Time timePerFrame = sf::seconds(1.0f / framesPerSecond);
+    sf::Clock animationClock;
+   // sf::Time timePerFrame = sf::seconds(0.1f);
+    int currentFrame = 0;
    
     // Set game running to true
    // bool gameRunning = true;
@@ -291,6 +329,15 @@ int main()
                 direction.y = 1;
             }
 
+            if (direction.x != 0 || direction.y != 0)
+            {
+                currentClip = &playerWalk;
+            }
+            else
+            {
+                currentClip = &playerStand;
+            }
+
 
             // Update player position based on movement direction
             float speed = 700;
@@ -359,8 +406,24 @@ int main()
             }
           
             
-          
+          // Process Animation
 
+            sf::Time timePassedThisFrame = animationClock.getElapsedTime();
+            if (timePassedThisFrame >= timePerFrame)
+            {
+                animationClock.restart();
+
+                // Go to the next frame of the animation
+                ++currentFrame;
+                if (currentFrame >= currentClip->size())
+                {
+                    currentFrame = 0;
+                }
+                playerSprite.setTexture((*currentClip)[currentFrame]);
+
+            }
+
+            
 
         } // END OF IF(GAMERUNNING)
         
@@ -373,6 +436,7 @@ int main()
                 score = 0;
                 gameTimer.restart();
             }
+
         }
 
         // Score
